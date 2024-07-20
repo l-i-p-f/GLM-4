@@ -12,8 +12,8 @@ import requests
 import streamlit as st
 from dataclasses import dataclass
 
-from .config import BROWSER_SERVER_URL
-from .interface import ToolObservation
+from config import BROWSER_SERVER_URL
+from interface import ToolObservation
 
 QUOTE_REGEX = re.compile(r"\[(\d+)†(.+?)\]")
 

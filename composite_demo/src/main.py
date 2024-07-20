@@ -208,7 +208,7 @@ elif page == Mode.VLM:
 # 创建一个聊天输入框，初始: 提示信息及组件唯一标识符
 prompt_text = st.chat_input("Chat with GLM-4!", key="chat_input")
 
-if prompt_text == "" and retry is False:
+if prompt_text.strip() and retry is False:
     print("\n== Clean ==\n")
     st.session_state.history = []
     exit()

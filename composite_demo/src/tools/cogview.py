@@ -2,8 +2,8 @@ import streamlit as st
 from zhipuai import ZhipuAI
 from zhipuai.types.image import GeneratedImage
 
-from .config import COGVIEW_MODEL, ZHIPU_AI_KEY
-from .interface import ToolObservation
+from config import COGVIEW_MODEL, ZHIPU_AI_KEY
+from interface import ToolObservation
 
 @st.cache_resource
 def get_zhipu_client():

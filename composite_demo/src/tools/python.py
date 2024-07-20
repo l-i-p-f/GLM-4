@@ -7,8 +7,8 @@ from typing import Literal
 import jupyter_client
 import streamlit as st
 
-from .config import IPYKERNEL
-from .interface import ToolObservation
+from config import IPYKERNEL
+from interface import ToolObservation
 
 ANSI_ESCAPE = re.compile(r'(\x9B|\x1B\[|\u001b\[)[0-?]*[ -/]*[@-~]')
 CODE = re.compile(r'```([^\n]*)\n(.*?)```')
