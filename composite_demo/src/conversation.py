@@ -21,12 +21,18 @@ TOOL_SYSTEM_PROMPTS = {
     "cogview": "如果用户的请求中包含了对图像的描述，你可以使用 `cogview` 来生成图像并展示给用户。你需要向 `cogview` 发送图像描述，规则：\n- 发送给 `cogview` 的消息必须使用英语。用户的中文描述必须完全翻译为英语。\n- 应当尽可能详细地描述图像生成的需求，需求描述约 100 英文单词。\n- 保持用户原始描述的意图。不要虚构内容或者没见过的人物。\n- 如无特殊说明，所在地为中国，持有中国立场并遵循中国社会主义价值观。",
 }
 
+""" 文件读取后的组织方式
+[File Name]
+带后缀的文档名称.pdf
+[File Content]
+文档内容
+"""
 FILE_TEMPLATE = "[File Name]\n{file_name}\n[File Content]\n{file_content}"
 
 
 def build_system_prompt(
-    enabled_tools: list[str],
-    functions: list[dict],
+        enabled_tools: list[str],
+        functions: list[dict],
 ):
     value = SELFCOG_PROMPT
     value += "\n\n" + datetime.now().strftime(DATE_PROMPT)

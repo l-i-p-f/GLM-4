@@ -22,7 +22,12 @@ pip install -r requirements.txt
 ipython kernel install --name glm-4-demo --user
 ```
 
-您可以修改 `~/.local/share/jupyter/kernels/glm-4-demo/kernel.json` 来改变 Jupyter 内核的配置，包括内核的启动参数等。例如，若您希望在使用 All Tools 的 Python 代码执行能力时使用 Matplotlib 画图，可以在 `argv` 数组中添加 `"--matplotlib=inline"`。
+您可以修改
+- linux: `~/.local/share/jupyter/kernels/glm-4-demo/kernel.json` 
+- mac: `/Users/xxx/Library/Jupyter/kernels/glm-4-demo`
+
+来改变 Jupyter 内核的配置，包括内核的启动参数等。例如，若您希望在使用 All Tools 的 Python 代码执行能力时使用 Matplotlib 画图，可以在 `argv` 数组中添加 `"--matplotlib=inline"`。
+
 
 若要使用浏览器和搜索功能，还需要启动浏览器后端。首先，根据 [Node.js](https://nodejs.org/en/download/package-manager)
 官网的指示安装 Node.js，然后安装包管理器 [PNPM](https://pnpm.io) 之后安装浏览器服务的依赖：

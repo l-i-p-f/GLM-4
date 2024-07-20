@@ -2,7 +2,6 @@
 HuggingFace client.
 """
 
-import threading
 from collections.abc import Generator
 from threading import Thread
 
@@ -26,10 +25,10 @@ class HFClient(Client):
         ).eval()
 
     def generate_stream(
-        self,
-        tools: list[dict],
-        history: list[Conversation],
-        **parameters,
+            self,
+            tools: list[dict],
+            history: list[Conversation],
+            **parameters,
     ) -> Generator[tuple[str | dict, list[dict]]]:
         chat_history = process_input(history, tools)
         model_inputs = self.tokenizer.apply_chat_template(

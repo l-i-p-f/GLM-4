@@ -27,23 +27,24 @@ from conversation import (
 from tools.tool_registry import dispatch_tool, get_tools
 from utils import extract_pdf, extract_docx, extract_pptx, extract_text
 
-
-CHAT_MODEL_PATH = os.environ.get("CHAT_MODEL_PATH", "THUDM/glm-4-9b-chat")
+CHAT_MODEL_PATH = os.environ.get("CHAT_MODEL_PATH", "/Users/lipf/Documents/PretrainModels/glm-4-9b-chat")
 VLM_MODEL_PATH = os.environ.get("VLM_MODEL_PATH", "THUDM/glm-4v-9b")
 
 USE_VLLM = os.environ.get("USE_VLLM", "0") == "1"
 USE_API = os.environ.get("USE_API", "0") == "1"
 
+
 class Mode(str, Enum):
+    """ 定义模式，加载不同模型或使用不同模式加载 """
     ALL_TOOLS = "🛠️ All Tools"
     LONG_CTX = "📝 文档解读"
     VLM = "🖼️ 多模态"
 
 
 def append_conversation(
-    conversation: Conversation,
-    history: list[Conversation],
-    placeholder: DeltaGenerator | None = None,
+        conversation: Conversation,
+        history: list[Conversation],
+        placeholder: DeltaGenerator | None = None,
 ) -> None:
     """
     Append a conversation piece into history, meanwhile show it in a new markdown block
@@ -52,6 +53,7 @@ def append_conversation(
     conversation.show(placeholder)
 
 
+# 初始化网页基本内容
 st.set_page_config(
     page_title="GLM-4 Demo",
     page_icon=":robot:",
@@ -61,10 +63,12 @@ st.set_page_config(
 
 st.title("GLM-4 Demo")
 st.markdown(
-    "<sub>智谱AI 公开在线技术文档: https://zhipu-ai.feishu.cn/wiki/RuMswanpkiRh3Ok4z5acOABBnjf </sub> \n\n <sub> 更多 GLM-4 开源模型的使用方法请参考文档。</sub>",
+    "<sub>智谱AI 公开在线技术文档: https://zhipu-ai.feishu.cn/wiki/RuMswanpkiRh3Ok4z5acOABBnjf </sub> \n\n "
+    "<sub> 更多 GLM-4 开源模型的使用方法请参考文档。</sub>",
     unsafe_allow_html=True,
 )
 
+# 初始化一些变量
 with st.sidebar:
     top_p = st.slider("top_p", 0.0, 1.0, 0.8, step=0.01)
     top_k = st.slider("top_k", 1, 20, 10, step=1, key="top_k")
@@ -72,21 +76,22 @@ with st.sidebar:
     repetition_penalty = st.slider("repetition_penalty", 0.0, 2.0, 1.0, step=0.01)
     max_new_tokens = st.slider("max_new_tokens", 1, 4096, 2048, step=1)
     cols = st.columns(2)
-    export_btn = cols[0]
+    retry = cols[0].button("Retry", use_container_width=True)
     clear_history = cols[1].button("Clear", use_container_width=True)
-    retry = export_btn.button("Retry", use_container_width=True)
 
+# 清除历史变量的值取决于用户点击按钮
 if clear_history:
     page = st.session_state.page
     client = st.session_state.client
     st.session_state.clear()
-    st.session_state.page = page
-    st.session_state.client = client
-    st.session_state.files_uploaded = False
-    st.session_state.uploaded_texts = ""
-    st.session_state.uploaded_file_nums = 0
+    st.session_state.page = page  # 用户选择的 Mode
+    st.session_state.client = client  # 加载的模型，分词器，及流式输出方式
+    st.session_state.files_uploaded = False  # 用户上传文件的状态，仅支持对话的首轮上传
+    st.session_state.uploaded_texts = ""  # 用户上传的所有文件内容，用 FILE_TEMPLATE 定义的格式组织内容
+    st.session_state.uploaded_file_nums = 0  # 用户上传的文档数量
     st.session_state.history = []
 
+# 初次初始化时定义关键变量
 if "files_uploaded" not in st.session_state:
     st.session_state.files_uploaded = False
 
@@ -100,6 +105,7 @@ first_round = len(st.session_state.history) == 0
 
 
 def build_client(mode: Mode) -> Client:
+    """ 根据不同模式选择相应的模型及加载方式 """
     match mode:
         case Mode.ALL_TOOLS:
             st.session_state.top_k = 10
@@ -124,12 +130,13 @@ def page_changed() -> None:
     st.session_state.client = build_client(Mode(new_page))
 
 
+# 创建一组单选按钮
 page = st.radio(
     "选择功能",
     [mode.value for mode in Mode],
-    key="page",
+    key="page",  # 关键，存储在 st.session_state 全局状态管理器的值
     horizontal=True,
-    index=None,
+    index=None,  # 指定默认选项
     label_visibility="hidden",
     on_change=page_changed,
 )
@@ -146,12 +153,13 @@ if page is None:
     st.markdown(HELP)
     exit()
 
+# 文档解读模型与 VLM 模型首轮文档和图像处理
 if page == Mode.LONG_CTX:
     if first_round:
         uploaded_files = st.file_uploader(
-            "上传文件",
+            "上传文件",  # 显示信息
             type=["pdf", "txt", "py", "docx", "pptx", "json", "cpp", "md"],
-            accept_multiple_files=True,
+            accept_multiple_files=True,  # 支持多文件上传
         )
         if uploaded_files and not st.session_state.files_uploaded:
             uploaded_texts = []
@@ -159,20 +167,24 @@ if page == Mode.LONG_CTX:
                 file_name: str = uploaded_file.name
                 random_file_name = str(uuid4())
                 file_extension = os.path.splitext(file_name)[1]
+                # 临时缓存文件
                 file_path = os.path.join("/tmp", random_file_name + file_extension)
                 with open(file_path, "wb") as f:
                     f.write(uploaded_file.getbuffer())
+                # 再用三方件重新打开，并读取内容
                 if file_name.endswith(".pdf"):
                     content = extract_pdf(file_path)
                 elif file_name.endswith(".docx"):
                     content = extract_docx(file_path)
                 elif file_name.endswith(".pptx"):
                     content = extract_pptx(file_path)
+                # ["txt", "py", "json", "cpp", "md"] 均直接用open打开文件并读取
                 else:
                     content = extract_text(file_path)
                 uploaded_texts.append(
                     FILE_TEMPLATE.format(file_name=file_name, file_content=content)
                 )
+                # 移除临时文件
                 os.remove(file_path)
             st.session_state.uploaded_texts = "\n\n".join(uploaded_texts)
             st.session_state.uploaded_file_nums = len(uploaded_files)
@@ -193,9 +205,10 @@ elif page == Mode.VLM:
         else:
             st.session_state.uploaded_image = None
 
+# 创建一个聊天输入框，初始: 提示信息及组件唯一标识符
 prompt_text = st.chat_input("Chat with GLM-4!", key="chat_input")
 
-if prompt_text == "" and retry == False:
+if prompt_text == "" and retry is False:
     print("\n== Clean ==\n")
     st.session_state.history = []
     exit()
@@ -261,11 +274,11 @@ def main(prompt_text: str):
             markdown_placeholder = message_placeholder.empty()
 
         def commit_conversation(
-            role: Role,
-            text: str,
-            metadata: str | None = None,
-            image: str | None = None,
-            new: bool = False,
+                role: Role,
+                text: str,
+                metadata: str | None = None,
+                image: str | None = None,
+                new: bool = False,
         ):
             processed_text = postprocess_text(text, role.value == Role.ASSISTANT.value)
             conversation = Conversation(role, text, processed_text, metadata, image)
@@ -286,13 +299,13 @@ def main(prompt_text: str):
 
             try:
                 for response, chat_history in client.generate_stream(
-                    tools=tools,
-                    history=history,
-                    temperature=temperature,
-                    top_p=top_p,
-                    top_k=top_k,
-                    repetition_penalty=repetition_penalty,
-                    max_new_tokens=max_new_tokens,
+                        tools=tools,
+                        history=history,
+                        temperature=temperature,
+                        top_p=top_p,
+                        top_k=top_k,
+                        repetition_penalty=repetition_penalty,
+                        max_new_tokens=max_new_tokens,
                 ):
                     if history_len is None:
                         history_len = len(chat_history)
@@ -309,10 +322,10 @@ def main(prompt_text: str):
                     )
                 else:
                     metadata = (
-                        page == Mode.ALL_TOOLS
-                        and isinstance(response, dict)
-                        and response.get("name")
-                        or None
+                            page == Mode.ALL_TOOLS
+                            and isinstance(response, dict)
+                            and response.get("name")
+                            or None
                     )
                     role = Role.TOOL if metadata else Role.ASSISTANT
                     text = (
