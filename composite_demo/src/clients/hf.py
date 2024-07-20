@@ -11,6 +11,8 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, TextIteratorStream
 from client import Client, process_input, process_response
 from conversation import Conversation
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 
 class HFClient(Client):
     def __init__(self, model_path: str):
@@ -21,7 +23,7 @@ class HFClient(Client):
             model_path,
             trust_remote_code=True,
             torch_dtype=torch.bfloat16,
-            device_map="cuda",
+            device_map=device,
         ).eval()
 
     def generate_stream(
